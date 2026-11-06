@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zeiterfassung"
+version = "0.12.5"
+description = "Lokale Zeiterfassung per Sprache, Hotkey und Klick (GTK4/libadwaita)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+# Bereiche (Major-Version); exakt getestete Versionen: constraints.txt
+dependencies = [
+    "openpyxl>=3.1,<4",
+    "tomli-w>=1.0,<2",
+    "sounddevice>=0.4.6,<1",
+    "numpy>=1.26,<3",
+]
+# PyGObject (gi) kommt systemweit (apt) und wird über --system-site-packages genutzt.
+# Spracherkennung: whisper.cpp als native Bibliothek (scripts/build-whisper.sh),
+# kein Python-Paket. faster-whisper/onnxruntime sind ausgeschlossen.
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov"]
+
+[project.scripts]
+zeit = "zeiterfassung.cli:main"
+zeit-tray = "zeiterfassung.tray.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+zeiterfassung = ["resources/*", "resources/**/*"]
+
+[tool.coverage.run]
+source = ["zeiterfassung"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

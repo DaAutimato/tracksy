@@ -1,0 +1,35 @@
+/* Tracksy-Palette, dunkles Schema (siehe palette-light.css).
+ *
+ *   accent_bg_color #177bb0 – weißer Text darauf 4,7:1
+ *   accent_color    #6dc1eb – als Text auf dunklem Fenster/Karte/Kopfleiste,
+ *                             auch auf 14 % Akzent-Tönung ≥ 4,6:1
+ * Zustände (auf 16 % Tönung über dunkler Karte ≥ 4,6:1):
+ *   läuft #8ff0a4 · pausiert #f8e45c · Aufnahme #ffa494
+ *   Aufnahme-Fläche #c01c28 mit Weiß 6,1:1
+ * Gefahr/Warnung (statt Theme-Farben):
+ *   tracksy_danger  #ffc2b8 – Text „Verwerfen“ auf 10–22 % Tönung, auch über der
+ *                             Dialogfläche #383838 ≥ 4,5:1
+ *   tracksy_warning #f8e45c – Text auf Karte ≥ 9:1, Symbol auf 12 % Tönung ≥ 6,6:1
+ * Dieselben Werte ersetzen error/destructive/warning des Themes (wie hell).
+ * Werte müssen mit palette-vars-dark.css übereinstimmen.
+ */
+@define-color accent_bg_color #177bb0;
+@define-color accent_fg_color #ffffff;
+@define-color accent_color #6dc1eb;
+
+@define-color tracksy_running #8ff0a4;
+@define-color tracksy_paused #f8e45c;
+@define-color tracksy_recording #ffa494;
+@define-color tracksy_recording_bg #c01c28;
+@define-color tracksy_recording_fg #ffffff;
+
+@define-color tracksy_danger #ffc2b8;
+@define-color tracksy_warning #f8e45c;
+
+@define-color error_color #ffc2b8;
+@define-color error_bg_color #c01c28;
+@define-color error_fg_color #ffffff;
+@define-color destructive_color #ffc2b8;
+@define-color destructive_bg_color #c01c28;
+@define-color destructive_fg_color #ffffff;
+@define-color warning_color #f8e45c;

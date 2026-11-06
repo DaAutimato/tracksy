@@ -1,0 +1,14 @@
+/* Akzent und Gefahr/Warnung als CSS-Variablen für libadwaita >= 1.6, dunkles Schema.
+ * Gleiche Werte wie palette-dark.css. */
+:root {
+  --accent-bg-color: #177bb0;
+  --accent-fg-color: #ffffff;
+  --accent-color: #6dc1eb;
+  --error-color: #ffc2b8;
+  --error-bg-color: #c01c28;
+  --error-fg-color: #ffffff;
+  --destructive-color: #ffc2b8;
+  --destructive-bg-color: #c01c28;
+  --destructive-fg-color: #ffffff;
+  --warning-color: #f8e45c;
+}

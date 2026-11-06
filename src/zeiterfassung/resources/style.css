@@ -1,0 +1,322 @@
+/* Zeiterfassung – zentrales Stylesheet (GTK4/libadwaita 1.5).
+ *
+ * Zustandsfarben kommen aus der festen Tracksy-Palette (resources/palette-*.css,
+ * geladen von ui/palette.py, je Hell/Dunkel), damit Tracksy auf Cinnamon, GNOME
+ * und KDE gleich aussieht – unabhängig von Theme und Desktop-Farbschema:
+ *   läuft     = @tracksy_running   (grün)
+ *   pausiert  = @tracksy_paused    (amber)
+ *   Aufnahme  = @tracksy_recording (rot), Fläche @tracksy_recording_bg/_fg
+ *   Gefahr    = @tracksy_danger    („Verwerfen“)
+ *   Warnung   = @tracksy_warning   (Hinweisbox, Löschfrist)
+ * Der Akzent (@accent_*) ist dort ebenfalls festgelegt (Mint-Aqua, AA-geprüft).
+ * Nur Flächen und Vordergrund (@window_*, @card_* …) folgen dem System.
+ */
+
+/* GTK 4.14 kennt keine CSS-Variablen – daher explizite Zustandsregeln je
+ * Element (Klassen .state-idle/-running/-paused/-stopping/-recording). */
+
+/* --- Hero ---------------------------------------------------------------- */
+.hero {
+  padding: 28px 24px 22px 24px;
+  border-radius: 18px;
+}
+
+.timer {
+  font-size: 68px;
+  font-weight: 300;
+  font-feature-settings: "tnum";
+  letter-spacing: -1px;
+  margin-top: 4px;
+}
+.timer-small {
+  font-size: 34px;
+  font-weight: 400;
+  font-feature-settings: "tnum";
+}
+.hero.state-paused .timer,
+.hero.state-stopping .timer { opacity: 0.55; }
+.hero.state-idle .timer { opacity: 0.30; }
+
+.task-title {
+  font-size: 22px;
+  font-weight: 700;
+}
+.task-subtitle {
+  opacity: 0.75;
+}
+.hero.state-idle .task-title { opacity: 0.6; font-weight: 600; }
+
+/* Zustands-Pill mit Punkt */
+.status-pill {
+  padding: 3px 12px 3px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  background-color: alpha(currentColor, 0.08);
+}
+.status-pill .dot {
+  min-width: 8px;
+  min-height: 8px;
+  border-radius: 999px;
+  background-color: alpha(currentColor, 0.45);
+}
+.status-pill.state-running { color: @tracksy_running; background-color: alpha(@tracksy_running, 0.14); }
+.status-pill.state-running .dot { background-color: @tracksy_running; }
+.status-pill.state-paused,
+.status-pill.state-stopping { color: @tracksy_paused; background-color: alpha(@tracksy_paused, 0.16); }
+.status-pill.state-paused .dot,
+.status-pill.state-stopping .dot { background-color: @tracksy_paused; }
+.status-pill.state-recording { color: @tracksy_recording; background-color: alpha(@tracksy_recording, 0.14); }
+.status-pill.state-recording .dot { background-color: @tracksy_recording; }
+
+.since-label {
+  font-feature-settings: "tnum";
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+/* Ort-Badge */
+.location-badge {
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: alpha(@window_fg_color, 0.08);
+}
+.location-badge.onsite {
+  background-color: alpha(@accent_bg_color, 0.14);
+  color: @accent_color;
+}
+
+/* Viertelstunden-Leiste: Farbe = Zeichenfarbe der DrawingArea */
+.quanta { color: alpha(@window_fg_color, 0.35); }
+.quanta.state-running { color: @tracksy_running; }
+.quanta.state-paused,
+.quanta.state-stopping { color: @tracksy_paused; }
+.quanta.state-recording { color: @tracksy_running; }
+.quanta-caption {
+  font-size: 12px;
+  opacity: 0.65;
+  font-feature-settings: "tnum";
+}
+
+/* --- Hauptaktionen ------------------------------------------------------- */
+.action-row button.pill {
+  padding: 8px 26px;
+}
+
+/* Mikrofon */
+.mic-button {
+  min-width: 76px;
+  min-height: 76px;
+  border-radius: 999px;
+  padding: 0;
+  -gtk-icon-size: 30px;
+  transition: background-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+.mic-button.small {
+  min-width: 44px;
+  min-height: 44px;
+  -gtk-icon-size: 18px;
+}
+.mic-button.recording {
+  background-color: @tracksy_recording_bg;
+  color: @tracksy_recording_fg;
+  box-shadow: 0 0 0 6px alpha(@tracksy_recording_bg, 0.25);
+  animation: zeit-pulse 1.2s ease-in-out infinite;
+}
+.mic-button.transcribing {
+  background-color: alpha(@tracksy_recording_bg, 0.18);
+}
+@keyframes zeit-pulse {
+  0%   { box-shadow: 0 0 0 4px alpha(@tracksy_recording_bg, 0.30); }
+  50%  { box-shadow: 0 0 0 12px alpha(@tracksy_recording_bg, 0.08); }
+  100% { box-shadow: 0 0 0 4px alpha(@tracksy_recording_bg, 0.30); }
+}
+.mic-hint {
+  font-size: 13px;
+  opacity: 0.7;
+}
+.mic-hint.recording {
+  color: @tracksy_recording;
+  opacity: 1;
+  font-weight: 700;
+}
+
+/* Tastenkappen (widgets.Keycaps): Fläche und Kante aus den Systemfarben, damit sie
+ * in Hell und Dunkel passen; Unterkante etwas kräftiger wie eine echte Taste. */
+.keycaps .keycap {
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 14px;
+  min-height: 18px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background-color: alpha(@window_fg_color, 0.05);
+  border: 1px solid alpha(@window_fg_color, 0.16);
+  box-shadow: inset 0 -2px alpha(@window_fg_color, 0.10);
+}
+
+/* Tastenkürzel-Hinweise unter dem Mikrofon und dem Start-Knopf: Text zurückgenommen –
+ * sichtbar, aber ruhig. */
+.key-hints { margin-top: 2px; }
+.key-hint { font-size: 12px; }
+.key-hint-text { opacity: 0.68; }
+button.hotkey-setup {
+  font-size: 12px;
+  min-height: 24px;
+  padding: 2px 10px;
+}
+
+levelbar.mic-level block.filled { background-color: @tracksy_recording_bg; }
+levelbar.mic-level block.empty  { background-color: alpha(@window_fg_color, 0.10); }
+levelbar.mic-level trough { min-height: 6px; border-radius: 3px; }
+levelbar.mic-level block { min-height: 6px; border-radius: 3px; }
+
+/* Ort-Umschalter (verbundene Toggle-Buttons) */
+.location-toggle button { min-width: 84px; }
+
+/* Vorschlagsliste Kunde */
+.suggestions row { padding: 6px 10px; }
+
+/* --- Ergänzungsdialog ---------------------------------------------------- */
+.summary-card {
+  padding: 16px 18px;
+  border-radius: 12px;
+}
+.summary-duration {
+  font-size: 30px;
+  font-weight: 300;
+  font-feature-settings: "tnum";
+}
+.addendum-view {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: alpha(@window_fg_color, 0.05);
+  min-height: 84px;
+}
+.addendum-view text { background-color: transparent; }
+.dialog-question { font-weight: 700; }
+/* „Verwerfen“: destruktiv, aber gut lesbar (WCAG AA hell + dunkel).
+ * Text in @tracksy_danger (Palette, auf die Tönungen bis 22 % ausgelegt);
+ * Fläche nur leicht getönt, damit „Speichern“ die Hauptaktion bleibt. */
+button.discard-button {
+  color: @tracksy_danger;
+  background-color: alpha(@tracksy_danger, 0.10);
+}
+button.discard-button:hover { background-color: alpha(@tracksy_danger, 0.15); }
+button.discard-button:active { background-color: alpha(@tracksy_danger, 0.22); }
+button.discard-button:focus-visible { outline-color: alpha(@tracksy_danger, 0.5); }
+
+/* --- Übersicht ----------------------------------------------------------- */
+.period-label {
+  font-weight: 700;
+  font-size: 17px;
+  min-width: 190px;
+}
+.sum-value {
+  font-feature-settings: "tnum";
+  font-weight: 600;
+}
+.sum-billed {
+  font-feature-settings: "tnum";
+  opacity: 0.6;
+  font-size: 12px;
+}
+.total-value {
+  font-size: 26px;
+  font-weight: 300;
+  font-feature-settings: "tnum";
+}
+
+/* --- Ersteinrichtung ----------------------------------------------------- */
+.wizard-step {
+  font-size: 13px;
+  opacity: 0.65;
+  font-feature-settings: "tnum";
+}
+.privacy-note {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background-color: alpha(@accent_bg_color, 0.10);
+}
+.command-preview {
+  font-family: monospace;
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: alpha(@window_fg_color, 0.06);
+}
+
+/* --- Aktive Auswahl (Tabs, Segment-Umschalter) --------------------------
+ * Standard-Adwaita hebt den aktiven Tab bzw. das gewählte Segment nur mit
+ * einer leichten Grautönung hervor – im Dunkelmodus kaum zu unterscheiden.
+ * Akzentfarbe (Text) + Akzent-Tönung (Fläche) machen die Auswahl in beiden
+ * Modi eindeutig, ohne die Fläche laut werden zu lassen. Tönung 14 %: dafür ist
+ * @accent_color der Palette auf AA (≥ 4,5:1) ausgelegt, auch auf der Kopfleiste. */
+viewswitcher button.toggle:checked,
+.segmented > button:checked {
+  color: @accent_color;
+  background-color: alpha(@accent_bg_color, 0.14);
+}
+viewswitcher button.toggle:checked:hover,
+.segmented > button:checked:hover {
+  background-color: alpha(@accent_bg_color, 0.20);
+}
+viewswitcher button.toggle:checked:active,
+.segmented > button:checked:active {
+  background-color: alpha(@accent_bg_color, 0.26);
+}
+
+/* Diktat-Knopf während der Aufnahme: Tracksy-Aufnahmefarbe statt Theme-Rot */
+button.dictation-button.destructive-action {
+  background-color: @tracksy_recording_bg;
+  color: @tracksy_recording_fg;
+}
+
+/* --- Einstellungen → Daten ---------------------------------------------- */
+/* Frist > 0 mit betroffenen Einträgen: Folge (Löschen beim Start) hervorheben */
+row.retention-active .subtitle {
+  color: @tracksy_warning;
+  opacity: 1;
+}
+.purge-preview {
+  font-weight: 700;
+  font-feature-settings: "tnum";
+}
+/* --- Exportdialog ---------------------------------------------------------- */
+.export-content { margin: 6px 18px 12px 18px; }
+.export-footer { padding: 6px 18px 18px 18px; }
+
+/* Hinweis-Kasten (NoteBox): getönte Fläche statt Einstellungszeile, damit er nicht als
+ * Option gelesen wird. Text in voller Vordergrundfarbe und Normalgröße (Kontrast),
+ * nur Symbol, Fläche und Rand tragen die Farbe (Warnung: Gesamtexport,
+ * Info: eigene Vorlage). */
+.note-box {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+}
+.note-box .note-title { font-weight: 700; }
+.note-box .note-text { opacity: 1; }
+.note-box .note-icon { margin-top: 1px; }
+.note-box.note-warning {
+  background-color: alpha(@tracksy_warning, 0.12);
+  border-color: alpha(@tracksy_warning, 0.40);
+}
+.note-box.note-warning .note-icon { color: @tracksy_warning; }
+.note-box.note-info {
+  background-color: alpha(@accent_bg_color, 0.10);
+  border-color: alpha(@accent_bg_color, 0.35);
+}
+.note-box.note-info .note-icon { color: @accent_color; }
+
+/* --- Kopfleiste: Logo als Knopf zum Über-Dialog -------------------------- */
+/* Flach und eng, damit es wie das frühere reine Bild wirkt; Fläche nur bei
+ * Hover/Fokus (Standardverhalten von .flat). */
+button.flat.header-logo {
+  padding: 4px;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 8px;
+}

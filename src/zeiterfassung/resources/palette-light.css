@@ -1,0 +1,43 @@
+/* Tracksy-Palette, helles Schema (feste Farben auf allen Arbeitsumgebungen).
+ *
+ * Geladen von ui/palette.py mit Priorität USER + 1: gewinnt gegen Themes
+ * (Mint-Y, Yaru-Akzent-Patch in Ubuntu 24.04) und gegen Farb-CSS der Arbeits-
+ * umgebung (KDE: ~/.config/gtk-4.0/colors.css). Enthält nur Farbdefinitionen,
+ * keine Regeln. Flächen (Fenster, Karten) folgen weiter dem System.
+ *
+ * Akzent = Mint-Aqua (#1f9ede), für WCAG AA abgedunkelt:
+ *   accent_bg_color #177bb0 – weißer Text darauf 4,7:1
+ *   accent_color    #136189 – als Text auf Fenster/Karte/Kopfleiste, auch auf
+ *                             14 % Akzent-Tönung ≥ 4,6:1
+ * Zustände (Text in der Zustands-Pill auf 16 % Tönung über Karte/Fenster ≥ 4,6:1):
+ *   läuft #177146 · pausiert #825c02 · Aufnahme #bc1b27
+ *   Aufnahme-Fläche (Mikrofon-Knopf) #c01c28 mit Weiß 6,1:1
+ * Gefahr/Warnung (statt @error_color/@warning_color des Themes):
+ *   tracksy_danger  #a3141e – Text „Verwerfen“ auf 10–22 % eigener Tönung über
+ *                             Dialog/Fenster/Karte ≥ 4,8:1
+ *   tracksy_warning #7d5600 – Text auf Karte ≥ 6,0:1, Symbol auf 12 % Tönung ≥ 5,0:1
+ * Dieselben Werte ersetzen die Theme-Farben error/destructive/warning, damit auch
+ * libadwaita-eigene Stellen (destruktive Knöpfe, .error/.warning) nicht vom Theme
+ * abhängen; destruktive Fläche = Aufnahme-Fläche #c01c28 mit Weiß 6,1:1.
+ * Werte müssen mit palette-vars-light.css übereinstimmen.
+ */
+@define-color accent_bg_color #177bb0;
+@define-color accent_fg_color #ffffff;
+@define-color accent_color #136189;
+
+@define-color tracksy_running #177146;
+@define-color tracksy_paused #825c02;
+@define-color tracksy_recording #bc1b27;
+@define-color tracksy_recording_bg #c01c28;
+@define-color tracksy_recording_fg #ffffff;
+
+@define-color tracksy_danger #a3141e;
+@define-color tracksy_warning #7d5600;
+
+@define-color error_color #a3141e;
+@define-color error_bg_color #c01c28;
+@define-color error_fg_color #ffffff;
+@define-color destructive_color #a3141e;
+@define-color destructive_bg_color #c01c28;
+@define-color destructive_fg_color #ffffff;
+@define-color warning_color #7d5600;

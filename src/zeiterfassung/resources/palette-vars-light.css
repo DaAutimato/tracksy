@@ -1,0 +1,15 @@
+/* Akzent und Gefahr/Warnung als CSS-Variablen für libadwaita >= 1.6 (dort nutzen die Widgets
+ * var(--accent-*) statt der benannten Farben). Nur ab 1.6 geladen (GTK 4.14
+ * kennt keine CSS-Variablen). Gleiche Werte wie palette-light.css. */
+:root {
+  --accent-bg-color: #177bb0;
+  --accent-fg-color: #ffffff;
+  --accent-color: #136189;
+  --error-color: #a3141e;
+  --error-bg-color: #c01c28;
+  --error-fg-color: #ffffff;
+  --destructive-color: #a3141e;
+  --destructive-bg-color: #c01c28;
+  --destructive-fg-color: #ffffff;
+  --warning-color: #7d5600;
+}

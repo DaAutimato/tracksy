@@ -1,0 +1,27 @@
+# Getestete Versionen der Laufzeitabhängigkeiten – exakt gepinnt.
+# Quelle: pip freeze (2026-10-30), Python 3.12.
+# Verwendung: pip install -c constraints.txt <app>   (scripts/install.sh macht das automatisch)
+#
+# Nur Laufzeit (openpyxl, tomli-w, sounddevice, numpy) inkl. transitiver
+# Abhängigkeiten; Testwerkzeuge (pytest, coverage …) fehlen bewusst.
+# Spracherkennung ist whisper.cpp (native Bibliothek, scripts/build-whisper.sh);
+# faster-whisper, ctranslate2, onnxruntime, huggingface_hub, av sind verboten
+# (automatisch geprüft).
+# Aktualisieren: neue Versionen in einer eigenen venv testen, dann diese
+# Liste anpassen.
+# Nächster Schritt: Hashes (--require-hashes).
+
+# direkte Abhängigkeiten
+numpy==2.5.4
+openpyxl==3.1.5
+sounddevice==0.5.6
+tomli_w==1.2.0
+
+# transitiv (openpyxl → et_xmlfile, sounddevice → cffi → pycparser)
+cffi==2.1.1
+et_xmlfile==2.0.0
+pycparser==3.12
+
+# Build-Werkzeug (pyproject [build-system]); gilt über PIP_CONSTRAINT auch für die
+# isolierte Build-Umgebung von pip
+setuptools==84.2.1

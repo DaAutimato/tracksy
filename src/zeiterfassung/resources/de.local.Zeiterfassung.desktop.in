@@ -1,0 +1,31 @@
+[Desktop Entry]
+Type=Application
+Name=Tracksy
+GenericName=Zeiterfassung
+Comment=Arbeitszeit per Sprache, Tastenkürzel und Klick erfassen – lokal und offline
+Exec=@EXEC@
+Icon=de.local.Zeiterfassung
+Terminal=false
+Categories=Office;ProjectManagement;Utility;
+Keywords=Zeiterfassung;Tracksy;Zeit;Stunden;Arbeitszeit;Leistungsnachweis;Timer;
+StartupNotify=true
+StartupWMClass=de.local.Zeiterfassung
+DBusActivatable=false
+X-GNOME-UsesNotifications=true
+Actions=quick;toggle;voice;show;
+
+[Desktop Action quick]
+Name=Schnellerfassung
+Exec=@CLI@ schnell
+
+[Desktop Action toggle]
+Name=Start/Stopp
+Exec=@CLI@ toggle
+
+[Desktop Action voice]
+Name=Spracheingabe
+Exec=@CLI@ voice
+
+[Desktop Action show]
+Name=Fenster öffnen
+Exec=@CLI@ show

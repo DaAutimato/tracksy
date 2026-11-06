@@ -1,0 +1,6 @@
+v1.9.5 d1be6fde11ac6e0407606b4e42fe72d34add8037
+Quelle: https://github.com/ggml-org/whisper.cpp (Tag v1.9.5), Lizenz MIT (LICENSE).
+Übernommen am 2026-10-30 nur, was der CPU-Build braucht: CMakeLists.txt, cmake/, include/, src/, ggml/, LICENSE, AUTHORS.
+Weggelassen: Beispiele, Tests, Bindings, Modelle/Skripte, src/coreml, src/openvino sowie die ggml-Backends
+blas, cann, cuda, et, hexagon, hip, metal, musa, opencl, openvino, rpc (Netzwerk), sycl, virtgpu, vulkan, webgpu, zdnn, zendnn.
+Unverändert gegenüber dem Original. Aktualisieren: neuen Stand gleich zuschneiden, Build + Tests, diese Datei anpassen.

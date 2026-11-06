@@ -1,0 +1,40 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Entwicklungsdaten (personenbezogen / Kundendaten)
+data/*
+!data/.gitkeep
+*.sqlite
+*.sqlite3
+*.db
+
+# Whisper-Modelle
+models/
+
+# Sonstiges
+_archiv/
+*.log
+
+# Tabellen nie versionieren (können personenbezogene Daten enthalten)
+*.xlsx
+
+# Build-Artefakte
+build/
+dist/
+
+# Exporte und SQLite-Nebendateien
+Leistungsnachweis_*
+*.csv
+*-wal
+*-shm
+.export-*.tmp
+
+# Native Spracherkennung (scripts/build-whisper.sh)
+native/build/
+
