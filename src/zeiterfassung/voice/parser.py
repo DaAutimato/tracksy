@@ -17,7 +17,8 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 
-__all__ = ["Intent", "Command", "parse_command", "words_to_number", "parse_number_tokens"]
+__all__ = ["Intent", "Command", "parse_command", "match_known_customer", "words_to_number",
+           "parse_number_tokens"]
 
 
 class Intent(str, Enum):
@@ -37,6 +38,7 @@ class Command:
     ticket: str | None = None
     location: str | None = None  # "remote" | "onsite" | None
     raw: str = ""
+    second_pass: bool = False    # aus dem zweiten Whisper-Lauf (Start-Prompt) übernommen
 
 
 # ---------------------------------------------------------------------------
@@ -154,7 +156,7 @@ _CORRECTIONS = {
     # Whisper-Fehlerkennungen / Varianten
     "stopp": "stop", "stops": "stop", "stoppt": "stop",
     "tema": "thema", "themen": "thema", "topic": "thema",
-    "kunden": "kunde", "kundin": "kunde", "kund": "kunde",
+    "kunden": "kunde", "kundin": "kunde", "kund": "kunde", "kunder": "kunde",
     "on-site": "onsite", "vorort": "vor_ort",
     "stoppetask": "stop", "stopptask": "stop", "stoptask": "stop",
     "pausieren": "pause", "pausiere": "pause", "pausier": "pause", "pausen": "pause",
@@ -174,15 +176,55 @@ def _normalize_word(w: str) -> str:
     return _CORRECTIONS.get(n, n)
 
 
+# Whisper schreibt Befehlswörter oft zusammen oder mit Bindestrich:
+# "Startekunde", "Neuertask", "Taskthema", "Beikunden", "Kunde-Muster-GmbH",
+# "Task-Thema-Update". Nur exakte Schlüsselwörter werden abgetrennt,
+# damit Namen wie "Kundendienst" oder "Themenpark" unverändert bleiben.
+_GLUE_KW = r"(kunde|kunden|kundin|thema|tema|ticket|task|aufgabe)"
+# "bei"/"beim"/"für" nur ohne Bindestrich ("Beikunde"), sonst zerfiele ein Thema
+# wie "Für-Kunden-Portal"
+_GLUE_PREFIX_RE = re.compile(
+    r"^(?:(starte|starten|startet|start|statte|beginne|beginn|neuer|neue|neues|neuen|task)-?"
+    r"|(bei|beim|für))" + _GLUE_KW + r"(?:-(.+))?$", re.IGNORECASE)
+# "Kunde-Müller", "Thema-Update"; "Ticket-1234" nur mit Zahl ("Ticket-System" bleibt)
+_GLUE_HEAD_RE = re.compile(r"^(kunde|kunden|kundin|thema|tema)-(.+)$|^(ticket)-(\d[\d.]*)$",
+                           re.IGNORECASE)
+
+
+def _split_glued(piece: str) -> list[str]:
+    """Verklebte Schlüsselwörter trennen; Satzzeichen bleiben am letzten Teil."""
+    core = piece.rstrip(_EDGE_PUNCT)
+    tail = piece[len(core):]
+    lead = core[:len(core) - len(core.lstrip(_EDGE_PUNCT))]
+    core = core[len(lead):]
+    parts = _split_core(core) if core else [core]
+    if len(parts) == 1:
+        return [piece]
+    parts[0] = lead + parts[0]
+    parts[-1] = parts[-1] + tail
+    return parts
+
+
+def _split_core(core: str, depth: int = 0) -> list[str]:
+    if depth > 4 or not core:
+        return [core] if core else []
+    m = _GLUE_PREFIX_RE.match(core)
+    if m:
+        return [m.group(1) or m.group(2), m.group(3)] + _split_core(m.group(4) or "", depth + 1)
+    m = _GLUE_HEAD_RE.match(core)
+    if m:
+        kw, rest = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4))
+        return [kw] + _split_core(rest, depth + 1)
+    return [core]
+
+
 def _tokenize(text: str) -> list[_Tok]:
     # Komma/Semikolon ohne folgendes Leerzeichen trotzdem als Grenze behandeln
     text = re.sub(r"([,;])(?=\S)", r"\1 ", text)
     toks: list[_Tok] = []
     pieces: list[str] = []
     for piece in text.split():
-        # "Kunde-Müller" (Whisper koppelt Schlüsselwort und Wert) -> "Kunde Müller"
-        m = re.match(r"^(kunde|kunden|thema|tema)-(\S+)$", piece, re.IGNORECASE)
-        pieces.extend(m.groups() if m else [piece])
+        pieces.extend(_split_glued(piece))
     for piece in pieces:
         stripped = piece.strip(_EDGE_PUNCT)
         if not stripped:
@@ -241,11 +283,15 @@ _COMMAND_NOISE = _FILLERS | {
 }
 
 _START_VERBS = {
-    "starte", "starten", "startet", "start", "beginne", "beginnen", "begin",
+    "starte", "starten", "startet", "start", "beginne", "beginnen", "begin", "beginn",
     "fange", "fang", "anfangen", "startest",
 }
+# Häufige Whisper-Fehlhörungen von "Starte" – gelten nur, wenn direkt ein
+# Feldwort folgt ("Statte Kunde Meier"). "Status Kunde …" bleibt bewusst mehrdeutig.
+_START_MISHEARD = {"statte", "stade", "satte", "schatte", "starter", "startete", "starke", "state"}
+_TASK_WORDS = {"task", "tasks", "aufgabe", "auftrag"}
 _START_PREFIX_SKIP = _FILLERS | {"möchte", "will", "würde", "werde", "gerne", "gern", "wir", "lass", "lasst", "uns"}
-_NEW_TASK_ADJ = {"neuer", "neue", "neuen", "neues"}
+_NEW_TASK_ADJ = {"neuer", "neue", "neuen", "neues", "neure"}
 
 _STOP_CORE = {"stop", "stoppe", "stoppen", "beende", "beenden", "fertig", "ende", "schluss", "feierabend"}
 _PAUSE_CORE = {"pause"}
@@ -336,8 +382,10 @@ def _detect_start(toks: list[_Tok]) -> int | None:
     for i, t in enumerate(toks):
         if t.norm in _START_VERBS:
             return i + 1
-        if t.norm in _NEW_TASK_ADJ and i + 1 < len(toks) and toks[i + 1].norm in ("task", "aufgabe", "auftrag"):
+        if t.norm in _NEW_TASK_ADJ and i + 1 < len(toks) and toks[i + 1].norm in _TASK_WORDS:
             return i + 2
+        if t.norm in _START_MISHEARD and i + 1 < len(toks) and toks[i + 1].norm in _FIELD_KEYWORDS:
+            return i + 1
         if t.norm in _START_PREFIX_SKIP:
             continue
         return None
@@ -479,3 +527,61 @@ def parse_command(transcript: str) -> Command:
     if start_pos is not None:
         return _parse_start(toks, start_pos, raw)
     return _parse_short(toks, raw)
+
+
+# ---------------------------------------------------------------------------
+# Abgleich mit bekannten Kunden (nur exakte Übereinstimmung, kein Raten)
+# ---------------------------------------------------------------------------
+
+_MAX_NAME_TOKENS = 6
+
+
+def _name_key(text: str) -> str:
+    """Vergleichsform: nur Buchstaben/Ziffern, ohne Groß-/Kleinschreibung."""
+    return "".join(ch for ch in text.casefold() if ch.isalnum())
+
+
+def match_known_customer(transcript: str, customer: str | None,
+                         known: list[str] | tuple[str, ...]) -> str | None:
+    """Kunden eines Startbefehls mit den bereits bekannten Kunden abgleichen.
+
+    - ``customer`` gesetzt: Stimmt er bis auf Groß-/Kleinschreibung, Leer- und
+      Satzzeichen mit einem bekannten Kunden überein ("Muster-GMBH" ↔ "Muster GmbH"),
+      wird dessen Schreibweise übernommen – sonst bleibt er unverändert.
+    - ``customer`` leer: Whisper klebt "Kunde" oft an den Namen ("Kundemeier",
+      "Kundenmuster GmbH"). Nur wenn der Rest danach genau einem bekannten Kunden
+      entspricht, wird dieser zurückgegeben; sonst ``None`` (App fragt nach).
+    Unscharfe Ähnlichkeit wird bewusst nicht verwendet.
+    """
+    index: dict[str, str] = {}
+    ambiguous: set[str] = set()
+    for name in known:
+        key = _name_key(name)
+        if not key:
+            continue
+        if key in index and index[key] != name:
+            ambiguous.add(key)  # z. B. "AB-C" und "ABC" – nicht raten
+        index.setdefault(key, name)
+    for key in ambiguous:
+        del index[key]
+    if not index:
+        return customer
+    if customer:
+        return index.get(_name_key(customer), customer)
+    toks = _tokenize((transcript or "").strip())
+    for i, t in enumerate(toks):
+        low = t.orig.casefold()
+        for prefix in ("kunden", "kunde"):
+            if not low.startswith(prefix) or len(low) <= len(prefix) + 1:
+                continue
+            words = [t.orig[len(prefix):].lstrip("-")]
+            j = i
+            while not toks[j].boundary and j + 1 < len(toks) and len(words) < _MAX_NAME_TOKENS:
+                j += 1
+                words.append(toks[j].orig)
+            # längste Übereinstimmung zuerst ("Muster GmbH" vor "Muster")
+            for n in range(len(words), 0, -1):
+                hit = index.get(_name_key(" ".join(words[:n])))
+                if hit:
+                    return hit
+    return None

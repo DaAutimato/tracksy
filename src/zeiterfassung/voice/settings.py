@@ -16,6 +16,14 @@ from pathlib import Path
 #: "Starte Kunde, Thema, Ticket." für gesprochenes "Status"). Ein Echo dieser
 #: Liste enthält mehrere Befehlswörter und wird vom Parser als UNKNOWN verworfen.
 DEFAULT_COMMAND_PROMPT = "Kunde, Thema, Ticket, Stopp, Pause, weiter, Status."
+# Zweiter Versuch, wenn der erste "nicht verstanden" oder "Start ohne Kunde" ergibt
+# (gemessen 2026-11-07, Whisper base, 95 synthetische Aufnahmen: 55 → 71 richtig,
+# 0 falsche Befehle). Nur Stichwörter des Startbefehls, weil
+# - Beispielsätze/-werte als Halluzination im Transkript landen (Thema, das nie gesagt wurde),
+# - Kurzbefehle als Liste im Prompt Wiederholungsschleifen auslösen ("Pause, Pause, …"),
+# - der Start-Prompt allein Kurzbefehle verschlechtert ("Stopp." → "Start.") – deshalb
+#   wird sein Ergebnis nur übernommen, wenn es ein Start MIT Kunde ist.
+DEFAULT_START_RETRY_PROMPT = "Starte, Beginne, Neuer Task, Kunde, Thema, Ticket."
 
 
 @dataclass(frozen=True)
@@ -42,6 +50,7 @@ class VoiceSettings:
     dictation_collapse_repeats: bool = True
     idle_unload_seconds: float = 300.0   # <= 0: nie automatisch entladen
     command_prompt: str | None = DEFAULT_COMMAND_PROMPT
+    start_retry_prompt: str | None = DEFAULT_START_RETRY_PROMPT  # None = kein zweiter Versuch
     dictation_prompt: str | None = None
     input_device: int | str | None = None  # None = Default-Gerät
     sample_rate: int = 16000

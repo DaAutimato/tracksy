@@ -20,7 +20,9 @@ Callbacks müssen schnell zurückkehren (``on_level`` kommt ca. alle 50 ms).
 
 from __future__ import annotations
 
+import dataclasses
 import logging
+import re
 import threading
 from collections.abc import Callable
 from enum import Enum
@@ -35,6 +37,28 @@ from .transcriber import Transcriber
 from ..logutil import log_failure
 
 log = logging.getLogger(__name__)
+
+
+def _intent(cmd: Any) -> str | None:
+    intent = getattr(cmd, "intent", None)
+    return getattr(intent, "value", intent)
+
+
+# Wortanfänge, die nach Startbefehl klingen ("Startekunde", "Statte", "Beginn", "Neuer Task")
+_RETRY_HINT = re.compile(r"sta|beg|neu|task|kund|them|tick|für", re.IGNORECASE)
+
+
+def _needs_start_retry(cmd: Any, text: str) -> bool:
+    """Start ohne Kunde, oder „nicht verstanden“ bei einem Text, der nach Start klingt.
+
+    Stille/leerer Text und klar fremde Sätze lösen keinen zweiten Lauf aus
+    (der kostet auf schwachen Rechnern mehrere Sekunden)."""
+    if not text.strip():
+        return False
+    intent = _intent(cmd)
+    if intent == "start":
+        return not (getattr(cmd, "customer", None) or "").strip()
+    return intent == "unknown" and bool(_RETRY_HINT.search(text))
 
 
 class VoiceState(str, Enum):
@@ -150,8 +174,12 @@ class VoiceController:
             self._fail(exc)
             return False
         self._emit(self.on_state, VoiceState.TRANSCRIBING)
+        # Audio in einem leerbaren Behälter übergeben: Thread-Argumente bleiben sonst bis
+        # zum Thread-Ende (im Fehlerfall auch im Traceback) im Speicher
+        box = [audio]
+        del audio
         self._worker = threading.Thread(
-            target=self._run, args=(audio, mode), name="voice-worker", daemon=True
+            target=self._run, args=(box, mode), name="voice-worker", daemon=True
         )
         self._worker.start()
         return True
@@ -203,7 +231,26 @@ class VoiceController:
         # aus PortAudio-Thread: Stream nicht hier schließen -> eigener Thread
         threading.Thread(target=self.end_listening, name="voice-limit", daemon=True).start()
 
-    def _run(self, audio: np.ndarray, mode: Mode) -> None:
+    def _retry_start(self, audio: np.ndarray, text: str, cmd: Command) -> tuple[str, Command]:
+        """Zweiter Versuch mit Start-Prompt; Ergebnis nur bei „Start mit Kunde“ übernehmen."""
+        s = self.settings
+        try:
+            text2 = self.transcriber.transcribe(
+                audio, initial_prompt=s.start_retry_prompt, max_new_tokens=s.command_max_new_tokens
+            )
+            cmd2 = self._parser(text2)
+        except Exception as exc:  # nur eine Hilfe – erstes Ergebnis nicht verlieren
+            log_failure(log, "Zweiter Sprachversuch", exc)
+            return text, cmd
+        if _intent(cmd2) == "start" and (getattr(cmd2, "customer", None) or "").strip():
+            log.info("Sprachbefehl im zweiten Versuch erkannt")  # keine Inhalte loggen
+            if dataclasses.is_dataclass(cmd2):
+                cmd2 = dataclasses.replace(cmd2, second_pass=True)
+            return text2, cmd2
+        return text, cmd
+
+    def _run(self, box: list[np.ndarray], mode: Mode) -> None:
+        audio = box.pop()
         try:
             s = self.settings
             if mode is Mode.COMMAND:
@@ -216,9 +263,12 @@ class VoiceController:
                     audio, initial_prompt=s.dictation_prompt,
                     max_new_tokens=s.dictation_max_new_tokens, dictation=True,
                 )
-            del audio  # Audio sofort verwerfen
             cmd = self._parser(text) if mode is Mode.COMMAND else None
+            if mode is Mode.COMMAND and s.start_retry_prompt and _needs_start_retry(cmd, text):
+                text, cmd = self._retry_start(audio, text, cmd)
+            audio = None  # Audio sofort freigeben (einzige Referenz)
         except Exception as exc:
+            audio = None  # nicht über den Fehlerpfad festhalten
             self._fail(exc)
             return
         self._set_state(VoiceState.IDLE)

@@ -43,7 +43,7 @@ Tracksy läuft derzeit unter Linux (siehe [Unterstützte Systeme](#unterstützte
 
 - **Alles bleibt auf deinem Rechner.** Keine Cloud, keine Konten, keine Telemetrie. Es werden nur Open-Source-Komponenten verwendet.
 - **Spracheingabe vorbereiten:** Kurz nach dem Start lädt Tracksy die Audio-Bibliothek und fragt dabei die Audiogeräte ab – es wird nichts aufgenommen. Das macht die erste Aufnahme schneller und lässt sich unter Einstellungen → Sprache abschalten.
-- **Audio wird nie gespeichert** – weder als Datei noch in Logs oder Absturzabbildern. Es wird nur im Arbeitsspeicher verarbeitet und danach verworfen. Lässt sich der Schutz vor Absturzabbildern nicht einschalten, startet die Aufnahme gar nicht. Das Mikrofon ist nur aktiv, solange du die Sprachtaste benutzt.
+- **Audio wird nie gespeichert** – weder als Datei noch in Logs oder Absturzabbildern. Es wird nur im Arbeitsspeicher verarbeitet und danach verworfen. Lässt sich der Schutz vor Absturzabbildern nicht einschalten, startet die Aufnahme gar nicht. Das Mikrofon ist nur aktiv, solange du die Sprachtaste benutzt. Für einen zweiten Auswertungslauf bei nicht verstandenen Startbefehlen bleibt das Audio kurz länger im Arbeitsspeicher und wird danach freigegeben; das Gehörte erscheint nur im Fenster (Dialog „Für welchen Kunden?“), nicht in Benachrichtigungen oder Logs.
 - **Systembenachrichtigungen ohne Inhalte:** Ist kein Tracksy-Fenster sichtbar, erscheinen Rückmeldungen als Systembenachrichtigung – nur mit neutralem Text (z. B. „Task gestartet“), ohne Kunden, Themen oder erkannten Sprachtext, weil der Desktop Benachrichtigungen im Verlauf speichert.
 - **Internetverbindungen – vollständige Liste:** Die App selbst baut genau eine Verbindung auf, und auch die nur nach deiner Zustimmung (Sprachmodell, siehe unten). Dazu kommen Downloads, die **du** auslöst: das Git-Repository selbst (`git clone` und Updates, github.com) und die Python-Bibliotheken bei Installation und Update (siehe [Was bei der Installation heruntergeladen wird](#was-bei-der-installation-heruntergeladen-wird)). Zeiterfassungs-, Kunden- oder Audiodaten werden dabei nie übertragen.
 - **Sprachmodell:** einmaliger Download von `huggingface.co` – nur nach deiner Zustimmung. Übertragen werden dabei nur die technisch nötigen Verbindungsdaten (IP-Adresse, Datei-URL, Programmkennung). Das Modell wird anhand von Größe und zwei Prüfsummen (SHA-1, SHA-256) geprüft. Hugging Face leitet dabei auf sein Auslieferungsnetz (`*.hf.co`) weiter; andere Ziele lehnt Tracksy ab. Die Server stehen in den USA. Ein abgebrochener Download hinterlässt keine Reste; ein beschädigtes Modell lässt sich unter Einstellungen → Sprache erneut herunterladen (die alte Datei wird archiviert, nicht gelöscht).
@@ -221,12 +221,16 @@ Mikrofon-Knopf mit der Maus oder `Strg+M` gedrückt halten (systemweit: `Super+U
 
 | Absicht | Beispiele |
 |---|---|
-| Start | „Ich starte für Kunde Müller am Thema Backup, Ticket 1234“ |
+| Start | „Ich starte für Kunde Müller am Thema Backup, Ticket 1234“, „Starte Kunde Muster GmbH“, „Beginne Task Kunde Muster GmbH Ticket 1234 Thema Update“, „Neuer Task, Thema Update und Ticket 44567 bei Kunde Muster GmbH“ |
 | Stopp | „Stopp“, „Stoppe Task“, „fertig“ |
 | Pause / Weiter | „Pause“, „weiter“, „fortsetzen“ |
 | Status | „Status“ |
 
-Füllwörter und typische Fehlerkennungen werden toleriert. Wird ein Befehl nicht sicher erkannt, zeigt Tracksy den verstandenen Text an und fragt nach.
+Füllwörter und typische Fehlerkennungen werden toleriert; auch zusammengezogene Wörter der Spracherkennung („Startekunde“, „Neuertask“) werden getrennt. Der Kundenname wird mit deinen vorhandenen Kunden abgeglichen („Muster-GMBH“ wird zu „Muster GmbH“, wenn es diesen Kunden gibt) – geraten wird nicht. Wird ein Start nicht verstanden oder fehlt der Kunde, wertet Tracksy dieselbe Aufnahme ein zweites Mal mit Startwörtern als Hinweis aus; ist der Kunde dann noch unbekannt, öffnet sich der Kundendialog vorausgefüllt zur Prüfung. Der Dialog „Für welchen Kunden?“ zeigt bei Sprachstart, was Tracksy gehört hat. Wird ein Befehl nicht sicher erkannt, zeigt Tracksy den verstandenen Text an und fragt nach.
+
+**Kunden vorab eintragen (empfohlen):** Die Spracherkennung kennt deine Kunden nicht und schreibt ungewöhnliche Namen oft falsch. Trag jeden Kunden deshalb einmal in korrekter Schreibweise ein – einen Task per Klick im Reiter **Erfassen** starten oder im Hauptmenü **Eintrag manuell anlegen**. Eine eigene Kundenliste gibt es nicht: Als vorhanden gilt jeder Kunde mit mindestens einem nicht verworfenen Eintrag (anzeigen mit `zeit kunden`). Danach landet „Starte Kunde Muster GmbH“ auch dann beim richtigen Kunden, wenn die Erkennung „muster gmbh“ oder „Kundenmuster GmbH“ liefert. Hört die Erkennung einen ganz anderen Namen, hilft nur Korrigieren (Dialog bzw. „Bearbeiten“) oder ein größeres Modell (`small`).
+
+Tipps: Sprich erst, wenn das Aufnahmesymbol aktiv ist (das Mikrofon öffnet beim Tastendruck; Bluetooth-Headsets brauchen länger). Die Verbesserungen der Startbefehle wurden bisher nur mit synthetischen Stimmen geprüft, nicht mit echten Sprechern.
 
 ### Beim Stoppen
 Tracksy fragt: „Möchtest du zum Task noch etwas ergänzen?“ und „Weitere erledigte Tätigkeiten?“. Beides darf leer bleiben. Danach: **Speichern**, **Weiterlaufen lassen** oder **Verwerfen** (mit Rückfrage). Als Endzeit gilt der Moment, in dem du auf Stopp gedrückt hast.

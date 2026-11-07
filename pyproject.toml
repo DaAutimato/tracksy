@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zeiterfassung"
-version = "0.12.5"
+version = "0.12.6"
 description = "Lokale Zeiterfassung per Sprache, Hotkey und Klick (GTK4/libadwaita)"
 readme = "README.md"
 requires-python = ">=3.12"

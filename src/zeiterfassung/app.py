@@ -18,6 +18,7 @@ import subprocess
 import sys
 import threading
 import time
+import unicodedata
 from pathlib import Path
 from typing import Any, Callable
 
@@ -684,17 +685,32 @@ class ZeitApp(Adw.Application):
         return True
 
     def ask_customer(self, values: dict[str, Any], source: str,
-                     parent: Gtk.Widget | None = None, on_started: Callable[[], None] | None = None
-                     ) -> None:
+                     parent: Gtk.Widget | None = None, on_started: Callable[[], None] | None = None,
+                     heard: str | None = None) -> None:
+        """Kunde nachfragen. ``heard`` = Transkript bei Sprachstart (nur Anzeige, kein Log),
+        damit sichtbar ist, warum der Kunde fehlt (z. B. „Kunde“ nicht verstanden)."""
         from .ui.widgets import a11y  # noqa: PLC0415
+
+        from .core.sanitize import strip_control  # noqa: PLC0415
 
         rest = describe_start_fields(None, values.get("topic"), values.get("ticket"), None)
         rest = rest.replace("Ohne Kunde", "").strip(", ")
+        # Steuer- und Unicode-Formatzeichen (z. B. Richtungswechsel U+202E) nicht anzeigen
+        heard = "".join(ch for ch in strip_control(heard or "")
+                        if unicodedata.category(ch) != "Cf")
+        heard = " ".join(heard.split())
+        if len(heard) > 200:
+            heard = heard[:199] + "…"
+        suggested = bool((values.get("customer") or "").strip())
         dlg = Adw.AlertDialog(heading="Für welchen Kunden?",
-                              body=(f"Erkannt: {rest}. " if rest else "")
-                              + "Bitte gib den Kunden an, damit der Task zugeordnet werden kann.")
+                              body=(f"Gehört: „{heard}“\n" if heard else "")
+                              + (f"Erkannt: {rest}. " if rest else "")
+                              + ("Der Kunde ist noch unbekannt – bitte Schreibweise prüfen und "
+                                 "mit „Starten“ bestätigen." if suggested else
+                                 "Bitte gib den Kunden an, damit der Task zugeordnet werden kann."))
         entry = Gtk.Entry(placeholder_text="Kunde", activates_default=True,
                           max_length=MAX_FIELD_LEN)
+        entry.set_text((values.get("customer") or "").strip())  # Vorschlag aus der Sprache
         a11y(entry, "Kunde", False)
         dlg.set_extra_child(entry)
         dlg.add_response("cancel", "Abbrechen")
@@ -702,7 +718,7 @@ class ZeitApp(Adw.Application):
         dlg.set_response_appearance("start", Adw.ResponseAppearance.SUGGESTED)
         dlg.set_default_response("start")
         dlg.set_close_response("cancel")
-        dlg.set_response_enabled("start", False)
+        dlg.set_response_enabled("start", bool(entry.get_text().strip()))
         entry.connect("changed", lambda e: dlg.set_response_enabled(
             "start", bool(e.get_text().strip())))
 
@@ -1078,6 +1094,24 @@ class ZeitApp(Adw.Application):
             return
         self.handle_command(text, cmd)
 
+    def _known_customer(self, text: str, customer: str | None) -> str | None:
+        """Kunde mit vorhandenen Kunden abgleichen (Schreibweise, verklebtes „Kunde…“)."""
+        from .voice.parser import match_known_customer  # noqa: PLC0415
+
+        try:
+            known = self.service.customers()
+        except Exception as exc:  # Abgleich ist nur eine Hilfe – Start nie daran scheitern lassen
+            log_failure(log, "Kundenliste für Sprachbefehl nicht lesbar", exc)
+            return customer
+        return match_known_customer(text, customer, known)
+
+    def _is_known_customer(self, name: str) -> bool:
+        try:
+            return name in self.service.customers()
+        except Exception as exc:
+            log_failure(log, "Kundenliste für Sprachbefehl nicht lesbar", exc)
+            return False
+
     def handle_command(self, text: str, cmd: Any) -> None:
         """Sprachbefehl auswerten. Nicht erkannt → Transkript zeigen, nicht raten."""
         data = command_to_dict(cmd) if cmd is not None else {"intent": "unknown"}
@@ -1092,8 +1126,16 @@ class ZeitApp(Adw.Application):
             return
         if intent == "start":
             fields = {k: data.get(k) for k in ("customer", "topic", "ticket", "location")}
-            if not (fields.get("customer") or "").strip():
-                self.ask_customer(fields, "voice", self.quick if self.quick else None)
+            raw_customer = fields.get("customer")
+            fields["customer"] = self._known_customer(text, raw_customer)
+            # Kunde aus dem zweiten Whisper-Lauf, der keinem bekannten Kunden entspricht:
+            # nicht still starten, sondern bestätigen lassen (vorausgefüllt)
+            unconfirmed = (bool(getattr(cmd, "second_pass", False)) and bool(raw_customer)
+                           and fields["customer"] == raw_customer
+                           and not self._is_known_customer(raw_customer))
+            if unconfirmed or not (fields.get("customer") or "").strip():
+                self.ask_customer(fields, "voice", self.quick if self.quick else None,
+                                  heard=text)
                 return
             if self.start_task(fields, source="voice"):
                 self.toast("Gestartet: " + describe_start_fields(**fields), "Bearbeiten",

@@ -8,6 +8,51 @@ ist Tracksy experimentell – auch kleinere Versionssprünge können Bedienung o
 Aktualisieren: `./scripts/tracksy-update.sh` im Ordner `tracksy` (siehe README). Das Skript zeigt
 vor der Rückfrage die Änderungen der neuen Versionen aus dieser Datei an.
 
+## [0.12.6] – 2026-11-07
+
+### Neu
+- Sprachbefehl „Start“ ist deutlich robuster. Diese Sätze werden jetzt erkannt: „Starte Kunde
+  Muster GmbH“, „Beginne Task Kunde Muster GmbH Ticket 1234 Thema Update“ und „Neuer Task, Thema
+  Update und Ticket 44567 bei Kunde Muster GmbH“. Neue Startwörter: „beginn“, „neure Task“.
+- Zweiter Versuch: Versteht Tracksy einen Befehl nicht oder erkennt es einen Start ohne Kunden,
+  das Gesagte klingt aber nach einem Start, wertet es dieselbe Aufnahme ein zweites Mal mit
+  Startwörtern als Hinweis aus. Das Ergebnis wird nur übernommen, wenn es ein Start mit Kunde ist.
+- Kundenname wird mit vorhandenen Kunden abgeglichen: „muster-gmbh“ wird zu „Muster GmbH“, wenn es
+  genau diesen Kunden schon gibt. Es wird nicht geraten; bei mehreren möglichen Schreibweisen
+  bleibt der gesprochene Name.
+- Stammt der Kunde aus dem zweiten Versuch und ist noch unbekannt, startet Tracksy nicht still,
+  sondern zeigt den Kundendialog vorausgefüllt zur Prüfung („Starten“ bestätigt).
+
+### Geändert
+- Der Dialog „Für welchen Kunden?“ zeigt bei Sprachstart, was Tracksy gehört hat („Gehört: …“,
+  höchstens 200 Zeichen). Das steht nur im Fenster, nicht in Benachrichtigungen oder Logs.
+- Ein Text, der nur aus einer Geräuschbeschreibung besteht („* räuspert sich *“, „[Musik]“,
+  „(Lachen)“), gilt bei Befehlen als „Nichts erkannt“.
+
+### Behoben
+- Sprach-Startbefehle führten zu „Nicht verstanden“ oder zur Rückfrage „Für welchen Kunden?“,
+  weil die Spracherkennung Wörter zusammenzieht („Startekunde“, „Neuertask“, „Kunde-Muster-GMBH“,
+  „Beikunde …“) oder „Starte“ als „Statte“ hört. Solche Schreibweisen werden getrennt. Namen wie
+  „Kundendienst“, „Ticket-System“ oder „Themenpark“ bleiben unverändert.
+
+### Hinweis
+- Getestet wurde nur mit synthetischen Stimmen (Messreihe mit 95 Aufnahmen: 55 → 71 richtig
+  erkannt, kein falscher Befehl), nicht mit echtem Mikrofon und echten Sprechern.
+  Nicht erkannt werden u. a. „Ticket-1234-5“ und „Ticket-1.2.3“; „Thema Kunde-Zufriedenheit“
+  wird als Kunde „Zufriedenheit“ gelesen.
+- Der zweite Versuch kostet in Fehlerfällen zusätzliche Rechenzeit (auf schwachen Rechnern mehrere
+  Sekunden). Dafür bleibt die Aufnahme etwas länger im Arbeitsspeicher; sie wird weiterhin nie
+  gespeichert und danach freigegeben.
+- Die Schreibweise ungewöhnlicher Kundennamen bleibt mit dem Modell „base“ begrenzt. Empfehlung:
+  Kunden für Sprachbefehle vorab einmal in korrekter Schreibweise eintragen – einen Task per Klick
+  im Reiter „Erfassen“ starten oder über das Hauptmenü „Eintrag manuell anlegen“. Eine eigene
+  Kundenliste gibt es nicht; als vorhanden gilt jeder Kunde mit mindestens einem nicht verworfenen
+  Eintrag. Danach greift der Abgleich. Bei Rechnern mit mindestens 4 Kernen und 8 GB RAM hilft
+  zusätzlich das Modell „small“.
+- Wenn der Start abgeschnitten wirkt: Das Mikrofon öffnet erst beim Tastendruck (Bluetooth-Headsets
+  brauchen länger). Sprich erst, wenn das Aufnahmesymbol aktiv ist. Ob das bei dir die Ursache ist,
+  wurde nicht geprüft.
+
 ## [0.12.5] – 2026-11-06
 
 ### Behoben

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 import threading
 import time
 from dataclasses import dataclass
@@ -75,6 +76,10 @@ def _default_model_factory(settings: VoiceSettings) -> Any:
     from .whispercpp import WhisperCppModel  # noqa: PLC0415 (lädt native Bibliothek)
 
     return WhisperCppModel(check_model_file(settings.model_path), n_threads=settings.cpu_threads)
+
+
+# Transkript besteht nur aus Geräuschbeschreibungen in *…*, […] oder (…)
+_ONLY_ANNOTATION = re.compile(r"^\s*(?:(?:\*[^*]*\*|\[[^\]]*\]|\([^)]*\))[\s.,!?…]*)+$")
 
 
 class Transcriber:
@@ -214,6 +219,9 @@ class Transcriber:
             "Transkription: %.2f s für %.1f s Audio",
             self.stats.transcribe_seconds, self.stats.audio_seconds,
         )
+        if not dictation and _ONLY_ANNOTATION.match(text):
+            # Whisper beschreibt Geräusche ("* Er räuspert sich *", "[Musik]") – kein Befehl
+            return ""
         if dictation and s.dictation_collapse_repeats:
             cleaned = collapse_repeats(text)
             if cleaned != text:  # nur Längen, nie Inhalte loggen
