@@ -3,7 +3,12 @@
 ## Sicherheitslücke melden
 
 Bitte melde vermutete Sicherheitslücken **nicht** als öffentliches Issue, sondern vertraulich
-per E-Mail an tracksy@pm.me (dieselbe Adresse steht in Tracksy unter Menü → „Über Tracksy“).
+auf einem dieser Wege:
+
+- **auf GitHub:** im Repository unter „Security“ → „Report a vulnerability“ (nur du und ich
+  sehen die Meldung; ein GitHub-Konto ist nötig),
+- **per E-Mail** an tracksy@pm.me (dieselbe Adresse steht in Tracksy unter Menü → „Über Tracksy“).
+
 Hilfreich sind:
 
 - betroffene Version (`zeit --version` bzw. Menü → „Über Tracksy“) und System (z. B. Linux Mint 22.3),
